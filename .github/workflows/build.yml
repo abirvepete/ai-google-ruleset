@@ -1,0 +1,56 @@
+name: Build Rulesets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rules/**"
+      - "scripts/**"
+      - ".github/workflows/build.yml"
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate text/yaml/json rulesets
+        run: python3 scripts/build.py
+
+      - name: Download Mihomo & compile .mrs
+        run: |
+          URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest \
+            | jq -r '.assets[] | select(.name | test("mihomo-linux-amd64-compatible-v.*\\.gz$")) | .browser_download_url' | head -n 1)
+          curl -fsSL "$URL" -o mihomo.gz
+          gunzip -f mihomo.gz
+          chmod +x mihomo
+          ./mihomo convert-ruleset domain text dist/mihomo/ai-google-openai.txt dist/mihomo/ai-google-openai.mrs
+          ./mihomo convert-ruleset domain text dist/mihomo/google-other.txt dist/mihomo/google-other.mrs
+
+      - name: Download sing-box & compile .srs
+        run: |
+          URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest \
+            | jq -r '.assets[] | select(.name | test("sing-box-.*-linux-amd64\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
+          curl -fsSL "$URL" -o sing-box.tar.gz
+          tar -xzf sing-box.tar.gz --strip-components=1 --wildcards '*/sing-box'
+          chmod +x sing-box
+          ./sing-box rule-set compile dist/singbox/ai-google-openai.json -o dist/singbox/ai-google-openai.srs
+          ./sing-box rule-set compile dist/singbox/google-other.json -o dist/singbox/google-other.srs
+
+      - name: Commit generated rulesets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dist/
+          git diff --staged --quiet || (git commit -m "chore: update generated rulesets" && git push)
