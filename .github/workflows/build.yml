@@ -47,7 +47,7 @@ jobs:
           chmod +x sing-box
           ./sing-box rule-set compile dist/singbox/ai-google-openai.json -o dist/singbox/ai-google-openai.srs
           ./sing-box rule-set compile dist/singbox/google-other.json -o dist/singbox/google-other.srs
-
+          ./sing-box rule-set compile dist/singbox/ai-apps-process.json -o dist/singbox/ai-apps-process.srs
       - name: Commit generated rulesets
         run: |
           git config user.name "github-actions[bot]"
