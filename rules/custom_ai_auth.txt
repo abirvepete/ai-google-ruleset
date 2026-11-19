@@ -21,3 +21,4 @@ proactivebackend-pa.googleapis.com
 # Google 登录认证（统一归入 AI 通道）
 accounts.google.com
 oauth2.googleapis.com
+myaccount.google.com
