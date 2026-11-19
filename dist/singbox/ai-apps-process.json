@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "process_name": [
+        "Antigravity",
+        "Antigravity.exe",
+        "ChatGPT",
+        "ChatGPT.exe",
+        "Claude",
+        "Claude.exe",
+        "Cursor",
+        "Cursor.exe",
+        "language_server",
+        "language_server.exe"
+      ],
+      "package_name": [
+        "ai.perplexity.app.android",
+        "com.anthropic.claude",
+        "com.google.android.apps.bard",
+        "com.openai.chatgpt"
+      ]
+    }
+  ]
+}
