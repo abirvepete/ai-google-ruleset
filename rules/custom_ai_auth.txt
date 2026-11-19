@@ -6,6 +6,8 @@ cloudcode-pa.googleapis.com
 daily-cloudcode-pa.googleapis.com
 aicode.googleapis.com
 aiplatform.googleapis.com
+antigravity-cli-auto-updater-974169037036.us-central1.run.app
+antigravity-hub-auto-updater-974169037036.us-central1.run.app
 
 # Google AI Studio & Gemini 补漏
 aistudio.google.com
