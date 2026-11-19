@@ -10,9 +10,16 @@ on:
   schedule:
     - cron: "0 4 * * *"
   workflow_dispatch:
+    inputs:
+      force_notify:
+        description: "即使规则无变更也强制发送测试通知（Issue + 邮件）"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -25,7 +32,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Generate text/yaml/json rulesets
+      - name: Analyze & generate rulesets
+        id: build
         run: python3 scripts/build.py
 
       - name: Download Mihomo & compile .mrs
@@ -48,9 +56,34 @@ jobs:
           ./sing-box rule-set compile dist/singbox/ai-google-openai.json -o dist/singbox/ai-google-openai.srs
           ./sing-box rule-set compile dist/singbox/google-other.json -o dist/singbox/google-other.srs
           ./sing-box rule-set compile dist/singbox/ai-apps-process.json -o dist/singbox/ai-apps-process.srs
+
       - name: Commit generated rulesets
+        if: steps.build.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dist/
-          git diff --staged --quiet || (git commit -m "chore: update generated rulesets" && git push)
+          git diff --staged --quiet || (git commit -m "chore: auto-update rulesets" && git push)
+
+      - name: Notify via GitHub Issue
+        if: steps.build.outputs.changed == 'true' || inputs.force_notify == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date -u +"%Y-%m-%d")
+          gh issue create --title "[规则更新] $DATE 规则集变更报告" --body-file dist/latest_diff.md
+
+      - name: Send direct SMTP email
+        if: (steps.build.outputs.changed == 'true' || inputs.force_notify == true) && env.MAIL_USERNAME != ''
+        uses: dawidd6/action-send-mail@v3
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "[ai-google-ruleset] 规则集更新通知"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_USERNAME }}
+          body: file://dist/latest_diff.md
