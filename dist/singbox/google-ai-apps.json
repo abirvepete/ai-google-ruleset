@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "process_name": [
+        "Antigravity",
+        "Antigravity.exe",
+        "language_server",
+        "language_server.exe"
+      ],
+      "package_name": [
+        "com.google.android.apps.bard"
+      ]
+    }
+  ]
+}

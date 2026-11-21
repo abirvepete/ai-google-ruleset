@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "process_name": [
+        "ChatGPT",
+        "ChatGPT.exe"
+      ],
+      "package_name": [
+        "com.openai.chatgpt"
+      ]
+    }
+  ]
+}
