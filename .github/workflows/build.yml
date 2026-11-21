@@ -43,7 +43,8 @@ jobs:
           curl -fsSL "$URL" -o mihomo.gz
           gunzip -f mihomo.gz
           chmod +x mihomo
-          ./mihomo convert-ruleset domain text dist/mihomo/ai-google-openai.txt dist/mihomo/ai-google-openai.mrs
+          ./mihomo convert-ruleset domain text dist/mihomo/google-ai.txt dist/mihomo/google-ai.mrs
+          ./mihomo convert-ruleset domain text dist/mihomo/openai.txt dist/mihomo/openai.mrs
           ./mihomo convert-ruleset domain text dist/mihomo/google-other.txt dist/mihomo/google-other.mrs
 
       - name: Download sing-box & compile .srs
@@ -53,9 +54,11 @@ jobs:
           curl -fsSL "$URL" -o sing-box.tar.gz
           tar -xzf sing-box.tar.gz --strip-components=1 --wildcards '*/sing-box'
           chmod +x sing-box
-          ./sing-box rule-set compile dist/singbox/ai-google-openai.json -o dist/singbox/ai-google-openai.srs
+          ./sing-box rule-set compile dist/singbox/google-ai.json -o dist/singbox/google-ai.srs
+          ./sing-box rule-set compile dist/singbox/openai.json -o dist/singbox/openai.srs
           ./sing-box rule-set compile dist/singbox/google-other.json -o dist/singbox/google-other.srs
-          ./sing-box rule-set compile dist/singbox/ai-apps-process.json -o dist/singbox/ai-apps-process.srs
+          ./sing-box rule-set compile dist/singbox/google-ai-apps.json -o dist/singbox/google-ai-apps.srs
+          ./sing-box rule-set compile dist/singbox/openai-apps.json -o dist/singbox/openai-apps.srs
 
       - name: Commit generated rulesets
         if: steps.build.outputs.changed == 'true'
