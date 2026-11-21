@@ -1,0 +1,8 @@
+# Windows / macOS / Linux 桌面进程名
+process:Antigravity.exe
+process:language_server.exe
+process:Antigravity
+process:language_server
+
+# Android 应用包名 (不含 com.google.android.gms，登录认证交由域名规则精准分流)
+package:com.google.android.apps.bard
