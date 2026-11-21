@@ -145,47 +145,71 @@ def write_app_outputs(name, processes, packages):
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     return sorted(new_lines - old_lines), sorted(old_lines - new_lines)
-
-
 def main():
+    for old_file in (
+        f"{OUT_MIHOMO}/ai-google-openai.txt",
+        f"{OUT_MIHOMO}/ai-google-openai.yaml",
+        f"{OUT_MIHOMO}/ai-google-openai.mrs",
+        f"{OUT_MIHOMO}/ai-apps-process.yaml",
+        f"{OUT_SINGBOX}/ai-google-openai.json",
+        f"{OUT_SINGBOX}/ai-google-openai.srs",
+        f"{OUT_SINGBOX}/ai-apps-process.json",
+        f"{OUT_SINGBOX}/ai-apps-process.srs",
+    ):
+        if os.path.exists(old_file):
+            os.remove(old_file)
+
     g_ai_d, g_ai_s = fetch_yaml_domains("google-deepmind")
-    oai_d, oai_s = fetch_yaml_domains("openai")
-    cus_d, cus_s = load_custom_domains("rules/custom_ai_auth.txt")
+    g_cus_d, g_cus_s = load_custom_domains("rules/google_ai_domains.txt")
     google_d, google_s = fetch_yaml_domains("google")
-    processes, packages = load_custom_apps("rules/custom_ai_apps.txt")
 
-    base_ai_d = g_ai_d | oai_d | cus_d
-    base_ai_s = g_ai_s | oai_s | cus_s
+    oai_d, oai_s = fetch_yaml_domains("openai")
+    oai_cus_d, oai_cus_s = load_custom_domains("rules/openai_domains.txt")
 
-    auto_d = {d for d in google_d if d not in base_ai_d and is_auto_ai(d)}
-    auto_s = {s for s in google_s if s not in base_ai_s and is_auto_ai(s)}
+    g_apps_proc, g_apps_pkg = load_custom_apps("rules/google_ai_apps.txt")
+    oai_apps_proc, oai_apps_pkg = load_custom_apps("rules/openai_apps.txt")
 
-    ai_domains = base_ai_d | auto_d
-    ai_suffixes = base_ai_s | auto_s
+    base_google_ai_d = g_ai_d | g_cus_d
+    base_google_ai_s = g_ai_s | g_cus_s
+
+    auto_d = {d for d in google_d if d not in base_google_ai_d and is_auto_ai(d)}
+    auto_s = {s for s in google_s if s not in base_google_ai_s and is_auto_ai(s)}
+
+    google_ai_domains = base_google_ai_d | auto_d
+    google_ai_suffixes = base_google_ai_s | auto_s
+
+    openai_domains = oai_d | oai_cus_d
+    openai_suffixes = oai_s | oai_cus_s
 
     other_domains = {
         d for d in google_d
-        if d not in ai_domains and not any(d == s or d.endswith("." + s) for s in ai_suffixes)
+        if d not in google_ai_domains and not any(d == s or d.endswith("." + s) for s in google_ai_suffixes)
     }
     other_suffixes = {
         s for s in google_s
-        if s not in ai_suffixes and not any(s.endswith("." + a) for a in ai_suffixes)
+        if s not in google_ai_suffixes and not any(s.endswith("." + a) for a in google_ai_suffixes)
     }
 
-    ai_add, ai_del = write_domain_outputs("ai-google-openai", ai_domains, ai_suffixes)
+    g_ai_add, g_ai_del = write_domain_outputs("google-ai", google_ai_domains, google_ai_suffixes)
+    oai_add, oai_del = write_domain_outputs("openai", openai_domains, openai_suffixes)
     ot_add, ot_del = write_domain_outputs("google-other", other_domains, other_suffixes)
-    app_add, app_del = write_app_outputs("ai-apps-process", processes, packages)
+    g_app_add, g_app_del = write_app_outputs("google-ai-apps", g_apps_proc, g_apps_pkg)
+    oai_app_add, oai_app_del = write_app_outputs("openai-apps", oai_apps_proc, oai_apps_pkg)
 
-    auto_list = sorted([f"+.{s}" for s in auto_s] + list(auto_d))
-    with open("dist/auto_detected.txt", "w", encoding="utf-8") as f:
+    auto_list = sorted(auto_d | {f"+.{s}" for s in auto_s})
+    with open("dist/auto_discovered_ai.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(auto_list) + ("\n" if auto_list else ""))
 
-    changed = bool(ai_add or ai_del or ot_add or ot_del or app_add or app_del)
+    changed = bool(
+        g_ai_add or g_ai_del or oai_add or oai_del or ot_add or ot_del or g_app_add or g_app_del or oai_app_add or oai_app_del
+    )
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     report = [f"# 规则集变更报告 ({now})\n"]
-    report.append(f"- `ai-google-openai`: 新增 {len(ai_add)} 条，移除 {len(ai_del)} 条")
-    report.append(f"- `google-other`: 新增 {len(ot_add)} 条，移除 {len(ot_del)} 条")
-    report.append(f"- `ai-apps-process`: 新增 {len(app_add)} 条，移除 {len(app_del)} 条")
+    report.append(f"- `google-ai`: 新增 {len(g_ai_add)} 条, 移除 {len(g_ai_del)} 条")
+    report.append(f"- `openai`: 新增 {len(oai_add)} 条, 移除 {len(oai_del)} 条")
+    report.append(f"- `google-other`: 新增 {len(ot_add)} 条, 移除 {len(ot_del)} 条")
+    report.append(f"- `google-ai-apps`: 新增 {len(g_app_add)} 条, 移除 {len(g_app_del)} 条")
+    report.append(f"- `openai-apps`: 新增 {len(oai_app_add)} 条, 移除 {len(oai_app_del)} 条")
     report.append(f"- 自动分析从 Google 上游新识别的 AI 域名: {len(auto_list)} 条\n")
 
     def append_section(title, items):
@@ -196,13 +220,17 @@ def main():
                 report.append(f"- ...其余 {len(items) - 100} 条略")
             report.append("")
 
-    append_section("ai-google-openai 新增", ai_add)
-    append_section("ai-google-openai 移除", ai_del)
+    append_section("google-ai 新增", g_ai_add)
+    append_section("google-ai 移除", g_ai_del)
+    append_section("openai 新增", oai_add)
+    append_section("openai 移除", oai_del)
     append_section("google-other 新增", ot_add)
     append_section("google-other 移除", ot_del)
-    append_section("ai-apps-process 新增", app_add)
-    append_section("ai-apps-process 移除", app_del)
-    append_section("自动分析识别的 AI 域名", auto_list)
+    append_section("google-ai-apps 新增", g_app_add)
+    append_section("google-ai-apps 移除", g_app_del)
+    append_section("openai-apps 新增", oai_app_add)
+    append_section("openai-apps 移除", oai_app_del)
+    append_section("自动识别的 AI 域名", auto_list)
 
     with open("dist/latest_diff.md", "w", encoding="utf-8") as f:
         f.write("\n".join(report))
@@ -215,3 +243,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def main():
