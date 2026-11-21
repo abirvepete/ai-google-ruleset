@@ -1,0 +1,24 @@
+# Google Antigravity (agy)
++.antigravity.google
++.antigravity.google.com
++.antigravity-unleash.goog
+cloudcode-pa.googleapis.com
+daily-cloudcode-pa.googleapis.com
+aicode.googleapis.com
+aiplatform.googleapis.com
+antigravity-cli-auto-updater-974169037036.us-central1.run.app
+antigravity-hub-auto-updater-974169037036.us-central1.run.app
+
+# Google AI Studio & Gemini 补漏
+aistudio.google.com
+gemini.google.com
++.generativeai.google
+generativelanguage.googleapis.com
+alkalimakersuite-pa.clients6.google.com
+webchannel-alkalimakersuite-pa.clients6.google.com
+proactivebackend-pa.googleapis.com
+
+# Google 登录认证 (统一归入 Google AI 通道)
+accounts.google.com
+oauth2.googleapis.com
+myaccount.google.com
