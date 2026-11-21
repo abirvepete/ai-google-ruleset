@@ -1,0 +1,8 @@
+# OpenAI / ChatGPT 自定义补漏域名
++.openai.com
++.chatgpt.com
++.oaistatic.com
++.oaiusercontent.com
++.sora.com
+auth0.openai.com
+cdn.oaistatic.com
