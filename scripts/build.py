@@ -135,12 +135,12 @@ def write_app_outputs(name, processes, packages):
             f.write(f"  - '{item}'\n")
 
     # sing-box rule-set source json (version 2)
-    rule = {}
+   rules = [] 
     if sorted_proc:
-        rule["process_name"] = sorted_proc
+        rules.append({"process_name": sorted_proc})
     if sorted_pkg:
-        rule["package_name"] = sorted_pkg
-    payload = {"version": 2, "rules": [rule]}
+        rules.append({"package_name": sorted_pkg})
+   payload = {"version": 2, "rules": rules} 
     with open(f"{OUT_SINGBOX}/{name}.json", "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
