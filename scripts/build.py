@@ -135,7 +135,7 @@ def write_app_outputs(name, processes, packages):
             f.write(f"  - '{item}'\n")
 
     # sing-box rule-set source json (version 2)
-   rules = [] 
+     rules = [] 
     if sorted_proc:
         rules.append({"process_name": sorted_proc})
     if sorted_pkg:
