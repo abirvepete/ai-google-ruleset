@@ -7,6 +7,8 @@ BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geos
 OUT_MIHOMO = "dist/mihomo"
 OUT_SINGBOX = "dist/singbox"
 
+EXTRA_DOMAIN_RULESETS = {"github": "github", "x": "twitter", "telegram": "telegram"}
+
 AUTO_AI_KEYWORDS = (
     "antigravity",
     "gemini",
@@ -193,6 +195,17 @@ def main():
     g_ai_add, g_ai_del = write_domain_outputs("google-ai", google_ai_domains, google_ai_suffixes)
     oai_add, oai_del = write_domain_outputs("openai", openai_domains, openai_suffixes)
     ot_add, ot_del = write_domain_outputs("google-other", other_domains, other_suffixes)
+    drive_domains, drive_suffixes = load_custom_domains("rules/google_drive_domains.txt")
+    if not (drive_domains or drive_suffixes):
+        raise ValueError("rules/google_drive_domains.txt must contain at least one domain")
+    service_changes = {
+        "google-drive": write_domain_outputs("google-drive", drive_domains, drive_suffixes),
+    }
+    for name, upstream in EXTRA_DOMAIN_RULESETS.items():
+        domains, suffixes = fetch_yaml_domains(upstream)
+        if not (domains or suffixes):
+            raise ValueError(f"Upstream ruleset {upstream} is empty")
+        service_changes[name] = write_domain_outputs(name, domains, suffixes)
     g_app_add, g_app_del = write_app_outputs("google-ai-apps", g_apps_proc, g_apps_pkg)
     oai_app_add, oai_app_del = write_app_outputs("openai-apps", oai_apps_proc, oai_apps_pkg)
 
@@ -202,12 +215,15 @@ def main():
 
     changed = bool(
         g_ai_add or g_ai_del or oai_add or oai_del or ot_add or ot_del or g_app_add or g_app_del or oai_app_add or oai_app_del
+        or any(added or removed for added, removed in service_changes.values())
     )
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     report = [f"# 规则集变更报告 ({now})\n"]
     report.append(f"- `google-ai`: 新增 {len(g_ai_add)} 条, 移除 {len(g_ai_del)} 条")
     report.append(f"- `openai`: 新增 {len(oai_add)} 条, 移除 {len(oai_del)} 条")
     report.append(f"- `google-other`: 新增 {len(ot_add)} 条, 移除 {len(ot_del)} 条")
+    for name, (added, removed) in service_changes.items():
+        report.append(f"- `{name}`: 新增 {len(added)} 条, 移除 {len(removed)} 条")
     report.append(f"- `google-ai-apps`: 新增 {len(g_app_add)} 条, 移除 {len(g_app_del)} 条")
     report.append(f"- `openai-apps`: 新增 {len(oai_app_add)} 条, 移除 {len(oai_app_del)} 条")
     report.append(f"- 自动分析从 Google 上游新识别的 AI 域名: {len(auto_list)} 条\n")
@@ -226,6 +242,9 @@ def main():
     append_section("openai 移除", oai_del)
     append_section("google-other 新增", ot_add)
     append_section("google-other 移除", ot_del)
+    for name, (added, removed) in service_changes.items():
+        append_section(f"{name} 新增", added)
+        append_section(f"{name} 移除", removed)
     append_section("google-ai-apps 新增", g_app_add)
     append_section("google-ai-apps 移除", g_app_del)
     append_section("openai-apps 新增", oai_app_add)

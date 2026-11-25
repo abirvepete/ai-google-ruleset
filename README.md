@@ -9,6 +9,8 @@ Automatically generated Mihomo (`.mrs` / `.yaml`) and sing-box (`.srs` / `.json`
 - **google-ai-apps**: Standalone process and package ruleset containing Google AI desktop application process names and Android package names.
 - **openai-apps**: Standalone process and package ruleset containing OpenAI / ChatGPT desktop application process names and Android package names. Note: `ChatGPT.exe` is also the process name for Codex in some Windows installations, so this ruleset will also route that process's traffic to the OpenAI group.
 - **google-other**: Pure domain ruleset containing the remaining regular Google services after excluding domains and suffixes already included in `google-ai` from the `google` ruleset.
+- **google-drive**: Domain rules for Drive, Docs, Sheets, Slides, their APIs, and Drive download and export hosts. The list uses [Google Workspace's firewall documentation](https://knowledge.workspace.google.com/admin/drive/drive-and-sites-firewall-and-proxy-settings) and deliberately keeps shared services such as Google sign-in and general Google storage with their existing policies.
+- **github**, **x**, and **telegram**: Optional domain rulesets from MetaCubeX, including GitHub's raw files and release assets, X's media CDN and short links, and Telegram's websites and CDN. The upstream GitHub list also covers GitHub Copilot and npm. Telegram clients that connect by IP need a separate Telegram IP ruleset.
 
 ## Subscription Paths
 
@@ -22,6 +24,7 @@ Automatically generated Mihomo (`.mrs` / `.yaml`) and sing-box (`.srs` / `.json`
 - `dist/mihomo/openai-apps.yaml` (`behavior: classical`, OpenAI desktop processes + Android packages)
 - `dist/mihomo/google-other.mrs` (`behavior: domain`, other regular Google services)
 - `dist/mihomo/google-other.yaml`
+- Use `dist/mihomo/{google-drive,github,x,telegram}.mrs` with `behavior: domain`. The same names are also available with a `.yaml` extension.
 
 ### sing-box (`.srs` / `.json`)
 
@@ -35,6 +38,7 @@ Automatically generated Mihomo (`.mrs` / `.yaml`) and sing-box (`.srs` / `.json`
 - `dist/singbox/openai-apps.json`
 - `dist/singbox/google-other.srs` (pure domains, other regular Google services)
 - `dist/singbox/google-other.json`
+- Use `dist/singbox/{google-drive,github,x,telegram}.srs` for routing and DNS. The same names are also available with a `.json` extension.
 
 ## Auto-Update & Email Notifications
 
@@ -45,13 +49,20 @@ Automatically generated Mihomo (`.mrs` / `.yaml`) and sing-box (`.srs` / `.json`
 
 ## Minimal Integration Examples
 
-The examples below follow an **apps-first** strategy: place `*-apps` rules before AI domain rules, and place `google-ai` before `google-other`; **DNS rules only reference pure domain rulesets** (`google-ai`, `openai`, `google-other`), with `google-ai` explicitly placed before `google-other`.
+Match `google-drive` before broader Google rules. The examples match known domains first so that, for example, a Google domain opened by ChatGPT still follows the Google policy and its DNS uses the same outbound. App rules handle the remaining AI traffic. For one Google group, use the same outbound for `google-ai` and `google-other` in both routing and DNS. Configurations without a Drive group can continue to route Drive through `google-other`.
 
 ### Mihomo Minimal Configuration
 
 ```yaml
 # Replace <RAW_BASE_URL> with the Raw URL prefix for the main branch of this repository
 rule-providers:
+  google-drive:
+    type: http
+    behavior: domain
+    format: mrs
+    url: "<RAW_BASE_URL>/dist/mihomo/google-drive.mrs"
+    path: ./ruleset/google-drive.mrs
+    interval: 86400
   google-ai-apps:
     type: http
     behavior: classical
@@ -90,15 +101,18 @@ rule-providers:
 
 dns:
   nameserver-policy:
-    "rule-set:google-ai,openai": https://dns.google/dns-query
-    "rule-set:google-other": https://dns.google/dns-query
+    "rule-set:google-drive": "https://dns.google/dns-query#Google Drive"
+    "rule-set:google-ai": "https://dns.google/dns-query#AI"
+    "rule-set:openai": "https://dns.google/dns-query#OpenAI"
+    "rule-set:google-other": "https://dns.google/dns-query#Google"
 
 rules:
-  - RULE-SET,google-ai-apps,AI
-  - RULE-SET,openai-apps,OpenAI
+  - RULE-SET,google-drive,Google Drive
   - RULE-SET,google-ai,AI
   - RULE-SET,openai,OpenAI
   - RULE-SET,google-other,Google
+  - RULE-SET,google-ai-apps,AI
+  - RULE-SET,openai-apps,OpenAI
 ```
 
 ### sing-box Minimal Configuration
@@ -108,24 +122,54 @@ rules:
   "dns": {
     "rules": [
       {
-        "rule_set": ["google-ai", "openai"],
-        "server": "proxy-dns"
+        "rule_set": ["google-drive"],
+        "server": "drive-dns"
+      },
+      {
+        "rule_set": ["google-ai"],
+        "server": "ai-dns"
+      },
+      {
+        "rule_set": ["openai"],
+        "server": "openai-dns"
       },
       {
         "rule_set": ["google-other"],
-        "server": "proxy-dns"
+        "server": "google-dns"
+      }
+    ],
+    "servers": [
+      {
+        "type": "https",
+        "tag": "drive-dns",
+        "server": "8.8.8.8",
+        "detour": "Google Drive"
+      },
+      {
+        "type": "https",
+        "tag": "ai-dns",
+        "server": "8.8.8.8",
+        "detour": "AI"
+      },
+      {
+        "type": "https",
+        "tag": "openai-dns",
+        "server": "8.8.8.8",
+        "detour": "OpenAI"
+      },
+      {
+        "type": "https",
+        "tag": "google-dns",
+        "server": "8.8.8.8",
+        "detour": "Google"
       }
     ]
   },
   "route": {
     "rules": [
       {
-        "rule_set": "google-ai-apps",
-        "outbound": "AI"
-      },
-      {
-        "rule_set": "openai-apps",
-        "outbound": "OpenAI"
+        "rule_set": "google-drive",
+        "outbound": "Google Drive"
       },
       {
         "rule_set": "google-ai",
@@ -138,9 +182,23 @@ rules:
       {
         "rule_set": "google-other",
         "outbound": "Google"
+      },
+      {
+        "rule_set": "google-ai-apps",
+        "outbound": "AI"
+      },
+      {
+        "rule_set": "openai-apps",
+        "outbound": "OpenAI"
       }
     ],
     "rule_set": [
+      {
+        "tag": "google-drive",
+        "type": "remote",
+        "format": "binary",
+        "url": "<RAW_BASE_URL>/dist/singbox/google-drive.srs"
+      },
       {
         "tag": "google-ai-apps",
         "type": "remote",
