@@ -8,7 +8,9 @@
         "Gemini.exe",
         "language_server",
         "language_server.exe"
-      ],
+      ]
+    },
+    {
       "package_name": [
         "com.google.android.apps.bard"
       ]

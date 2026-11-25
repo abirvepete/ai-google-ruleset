@@ -5,7 +5,9 @@
       "process_name": [
         "ChatGPT",
         "ChatGPT.exe"
-      ],
+      ]
+    },
+    {
       "package_name": [
         "com.openai.chatgpt"
       ]
