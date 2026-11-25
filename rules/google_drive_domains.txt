@@ -1,0 +1,19 @@
+# Drive, Docs editors, API, and download/export endpoints.
+# Google Workspace firewall list:
+# https://knowledge.workspace.google.com/admin/drive/drive-and-sites-firewall-and-proxy-settings
++.drive.google.com
++.docs.google.com
+sheets.google.com
+slides.google.com
++.googledrive.com
++.drive.googleusercontent.com
++.docs.googleusercontent.com
+drive.usercontent.google.com
+drive-data-export.usercontent.google.com
+drive-data-export-eu.usercontent.google.com
+drive.googleapis.com
+drivefs.googleapis.com
+drivefrontend-pa.googleapis.com
+docs.googleapis.com
+sheets.googleapis.com
+slides.googleapis.com
