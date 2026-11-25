@@ -2,7 +2,7 @@ name: Build Rulesets
 
 on:
   push:
-    branches: [main]
+    branches: [main, "codex/**"]
     paths:
       - "rules/**"
       - "scripts/**"
@@ -64,7 +64,7 @@ jobs:
           mkdir -p /tmp/decompiled && for f in dist/singbox/*.srs; do ./sing-box rule-set decompile "$f" -o "/tmp/decompiled/$(basename "$f" .srs).json"; done && python3 -c "import json,os; ps=[f'dist/mihomo/{x}' for x in ['google-ai.mrs','openai.mrs','google-other.mrs','google-ai.txt','openai.txt','google-other.txt','google-ai-apps.yaml','openai-apps.yaml']]+[f'dist/singbox/{x}.srs' for x in ['google-ai','openai','google-other','google-ai-apps','openai-apps']]; assert all(os.path.getsize(p)>0 for p in ps); sb=lambda n:json.load(open(f'/tmp/decompiled/{n}.json'))['rules']; sa=lambda rs,pr=None,pk=None:any((('process_name' not in r or pr in r['process_name']) and ('package_name' not in r or pk in r['package_name'])) for r in rs if r); sd=lambda rs,d:any(d in r.get('domain',[]) or any(d==s or d.endswith('.'+s) for s in r.get('domain_suffix',[])) for r in rs); md=lambda n:[l.strip() for l in open(f'dist/mihomo/{n}.txt') if l.strip() and not l.startswith('#')]; mh=lambda es,d:any((d==e[2:] or d.endswith('.'+e[2:])) if e.startswith('+.') else d==e for e in es); ma=lambda n:[l.strip()[2:].strip(chr(39)+chr(34)) for l in open(f'dist/mihomo/{n}.yaml') if l.strip().startswith('- ')]; mk=lambda es,v:f'PROCESS-NAME,{v}' in es or f'PACKAGE-NAME,{v}' in es; ga,oa,mga,moa=sb('google-ai-apps'),sb('openai-apps'),ma('google-ai-apps'),ma('openai-apps'); assert sa(ga,pr='Gemini.exe') and not sa(oa,pr='Gemini.exe') and mk(mga,'Gemini.exe') and not mk(moa,'Gemini.exe'); assert sa(ga,pk='com.google.android.apps.bard') and not sa(oa,pk='com.google.android.apps.bard') and mk(mga,'com.google.android.apps.bard') and not mk(moa,'com.google.android.apps.bard'); assert sa(oa,pr='ChatGPT.exe') and not sa(ga,pr='ChatGPT.exe') and mk(moa,'ChatGPT.exe') and not mk(mga,'ChatGPT.exe'); assert sa(oa,pk='com.openai.chatgpt') and not sa(ga,pk='com.openai.chatgpt') and mk(moa,'com.openai.chatgpt') and not mk(mga,'com.openai.chatgpt'); print('PASS: Apps rulesets verified (process-only & package-only)'); sbo=[(n,sb(n)) for n in ('google-ai','google-other','openai')]; mho=[(n,md(n)) for n in ('google-ai','google-other','openai')]; [print(f'PASS: {d} -> {e}') for d,e in [('gemini.google.com','google-ai'),('mail.google.com','google-other'),('api.openai.com','openai')] if next((n for n,r in sbo if sd(r,d)),None)==e and next((n for n,r in mho if mh(r,d)),None)==e or (_ for _ in ()).throw(AssertionError(d))]"
         
       - name: Commit generated rulesets
-        if: steps.build.outputs.changed == 'true'
+        if: github.ref == 'refs/heads/main' && steps.build.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -72,7 +72,7 @@ jobs:
           git diff --staged --quiet || (git commit -m "chore: auto-update rulesets" && git push)
 
       - name: Notify via GitHub Issue
-        if: steps.build.outputs.changed == 'true' || inputs.force_notify == true
+        if: github.ref == 'refs/heads/main' && (steps.build.outputs.changed == 'true' || inputs.force_notify == true)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -80,7 +80,7 @@ jobs:
           gh issue create --title "[规则更新] $DATE 规则集变更报告" --body-file dist/latest_diff.md
 
       - name: Send direct SMTP email
-        if: (steps.build.outputs.changed == 'true' || inputs.force_notify == true) && env.MAIL_USERNAME != ''
+        if: github.ref == 'refs/heads/main' && (steps.build.outputs.changed == 'true' || inputs.force_notify == true) && env.MAIL_USERNAME != ''
         uses: dawidd6/action-send-mail@v3
         env:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
